@@ -19,6 +19,9 @@ abstract contract PawnLayaway is PawnBase {
 
         list.isActive = false; // Freeze marketplace availability temporarily
 
+        uint256 remainingAmount = list.price - initialPayment;
+        uint256 installment = remainingAmount / monthsDuration;
+
         layaways[assetId] = Layaway({
             buyer: msg.sender,
             totalPrice: list.price,
@@ -27,6 +30,7 @@ abstract contract PawnLayaway is PawnBase {
             // Deposit is only held for e.g. duration layaway period
             deadline: block.timestamp + (monthsDuration * 30 days), 
             monthsDuration: monthsDuration,
+            installmentAmount: installment,
             isActive: true,
             penaltyAccumulated: 0
         });
@@ -45,6 +49,13 @@ abstract contract PawnLayaway is PawnBase {
         require(layaway.isActive, "Layaway not active");
         require(msg.sender == layaway.buyer, "Not buyer");
         
+        uint256 remaining = layaway.totalPrice - layaway.amountPaid;
+        uint256 requiredAmount = layaway.installmentAmount;
+        if (remaining < requiredAmount || remaining - requiredAmount < requiredAmount) {
+            requiredAmount = remaining; // Handle last payment and any division remainders
+        }
+        require(amount == requiredAmount, "Incorrect installment amount");
+
         uint256 expectedPaymentDate = layaway.lastPaymentTime + 30 days; 
         bool isLate = block.timestamp > expectedPaymentDate;
         

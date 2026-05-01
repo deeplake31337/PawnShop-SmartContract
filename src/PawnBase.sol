@@ -45,6 +45,14 @@ abstract contract PawnBase is ReentrancyGuard {
         bool isActive;
     }
 
+    struct FractionListing {
+        address seller;
+        uint256 assetId;
+        uint256 amount;
+        uint256 pricePerShare;
+        bool isActive;
+    }
+
     struct Layaway {
         address buyer;
         uint256 totalPrice;
@@ -52,6 +60,7 @@ abstract contract PawnBase is ReentrancyGuard {
         uint256 lastPaymentTime;
         uint256 deadline;
         uint256 monthsDuration;     // 3, 6, 9, or 12 months
+        uint256 installmentAmount;  // Fixed amount to pay per month
         bool isActive;
         uint256 penaltyAccumulated; // trackers late payment penalties
     }
@@ -71,6 +80,9 @@ abstract contract PawnBase is ReentrancyGuard {
     mapping(uint256 => Layaway) public layaways;
     mapping(uint256 => FractionalAsset) public fractionalAssets;
     
+    uint256 public nextFractionListingId;
+    mapping(uint256 => FractionListing) public fractionListings;
+
     // user => number of shares owned for a specific asset
     mapping(uint256 => mapping(address => uint256)) public fractionBalances; 
 
@@ -90,6 +102,9 @@ abstract contract PawnBase is ReentrancyGuard {
     event AppraisalUpdated(uint256 indexed assetId, uint256 newValue, uint256 timestamp, uint256 adminLTV, uint256 interestRateBps);
     event LoanCreated(uint256 indexed assetId, address borrower, uint256 amount, uint256 duration);
     event LoanRepaid(uint256 indexed assetId, address borrower, uint256 totalRepaid);
+    event FractionListed(uint256 indexed listingId, uint256 indexed assetId, address seller, uint256 amount, uint256 pricePerShare);
+    event FractionListingCancelled(uint256 indexed listingId);
+    event FractionBoughtFromListing(uint256 indexed listingId, uint256 indexed assetId, address buyer, uint256 amountBought, uint256 totalCost);
     event LoanLiquidated(uint256 indexed assetId);
     event ItemConsigned(uint256 indexed assetId, address seller, uint256 price);
     event ItemBought(uint256 indexed assetId, address buyer, uint256 price);

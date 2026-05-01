@@ -61,4 +61,70 @@ abstract contract PawnMarketplace is PawnBase {
         assetToken.transferFrom(address(this), msg.sender, assetId);
         emit ItemBought(assetId, msg.sender, list.price);
     }
+
+    /**
+     * @dev Users list their fractional tokens for sale.
+     * @param assetId The fractionalized NFT
+     * @param amount The number of fraction tokens to sell
+     * @param pricePerShare The price per share in stablecoins
+     */
+    function createFractionListing(uint256 assetId, uint256 amount, uint256 pricePerShare) external nonReentrant returns (uint256 listingId) {
+        require(amount > 0, "Amount must be > 0");
+        require(pricePerShare > 0, "Price must be > 0");
+        
+        fractionToken.safeTransferFrom(msg.sender, address(this), assetId, amount, "");
+        
+        listingId = nextFractionListingId++;
+        fractionListings[listingId] = FractionListing({
+            seller: msg.sender,
+            assetId: assetId,
+            amount: amount,
+            pricePerShare: pricePerShare,
+            isActive: true
+        });
+        
+        emit FractionListed(listingId, assetId, msg.sender, amount, pricePerShare);
+    }
+
+    /**
+     * @dev Cancel a fraction listing and retrieve back the fraction tokens
+     */
+    function cancelFractionListing(uint256 listingId) external nonReentrant {
+        FractionListing storage list = fractionListings[listingId];
+        if (!list.isActive) revert NotForSale();
+        if (msg.sender != list.seller && msg.sender != admin) revert NotAuthorized();
+
+        list.isActive = false;
+        
+        fractionToken.safeTransferFrom(address(this), list.seller, list.assetId, list.amount, "");
+        emit FractionListingCancelled(listingId);
+    }
+
+    /**
+     * @dev Buy fractions from a specific listing
+     */
+    function buyFractionListing(uint256 listingId, uint256 amountToBuy) external nonReentrant {
+        FractionListing storage list = fractionListings[listingId];
+        if (!list.isActive) revert NotForSale();
+        require(amountToBuy > 0, "Amount must be > 0");
+        if (list.amount < amountToBuy) revert NotEnoughFractions();
+
+        uint256 totalCost = amountToBuy * list.pricePerShare;
+        
+        list.amount -= amountToBuy;
+        if (list.amount == 0) {
+            list.isActive = false;
+        }
+
+        // Apply platform fee commission
+        uint256 fee = (totalCost * platformFeePercentage) / MAX_BPS;
+        uint256 netToSeller = totalCost - fee;
+
+        paymentToken.transferFrom(msg.sender, address(this), fee);
+        paymentToken.transferFrom(msg.sender, list.seller, netToSeller);
+
+        fractionToken.safeTransferFrom(address(this), msg.sender, list.assetId, amountToBuy, "");
+
+        emit FractionBoughtFromListing(listingId, list.assetId, msg.sender, amountToBuy, totalCost);
+    }
 }
