@@ -25,7 +25,7 @@ foundryup
 Once Foundry is installed, clone this repository and install the dependencies:
 
 ```shell
-git clone this repo
+git clone --recursive https://github.com/deeplake31337/PawnShop-SmartContract.git
 cd pawnshop
 forge install
 ```
