@@ -47,6 +47,8 @@ forge test
 ## Documentation
 
 For more information on how to use Foundry, please refer to the [Foundry Book](https://book.getfoundry.sh/).
+
+```shell
 $ forge build
 ```
 
