@@ -13,8 +13,11 @@ contract PawnFractionalTest is BaseSetup {
         // Wait, original test failed because "No active pawn loan for this asset"
         // Let's create a PawnLoan first and let it become overdue, or simulate cheap sell.
         
+        vm.prank(admin);
+        protocol.setKYCStatus(alice, true);
+
         vm.prank(oracle);
-        protocol.updateAppraisal(ASSET_ID, 20_000 * 10**18, 6000, 500); 
+        protocol.updateAppraisal(ASSET_ID, 20_000 * 10**18, 6000, 500, true); 
 
         vm.startPrank(alice);
         assetToken.approve(address(protocol), ASSET_ID);

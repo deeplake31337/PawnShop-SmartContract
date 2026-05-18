@@ -10,7 +10,10 @@ abstract contract PawnLoans is PawnBase {
      * @param durationDays Number of days the loan is active for
      * @param requestedAmount The stablecoin amount the borrower is requesting
      */
-    function createPawnLoan(uint256 assetId, uint256 durationDays, uint256 requestedAmount) external nonReentrant {
+    function createPawnLoan(uint256 assetId, uint256 durationDays, uint256 requestedAmount) external onlyKYC(msg.sender) nonReentrant {
+        require(supportedStablecoins[address(paymentToken)], "Payment token not supported");
+        require(durationDays * 1 days >= minLoanDuration && durationDays * 1 days <= maxLoanDuration, "Invalid loan duration");
+
         Appraisal memory app = appraisals[assetId];
         
         if (!app.isValid) revert NotAppraisedOrInvalid();

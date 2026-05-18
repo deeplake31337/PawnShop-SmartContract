@@ -11,7 +11,7 @@ contract PawnAppraisalTest is BaseSetup {
         uint256 interestBps = 500;                
 
         vm.prank(oracle);
-        protocol.updateAppraisal(ASSET_ID, estimatedValue, ltvBps, interestBps);
+        protocol.updateAppraisal(ASSET_ID, estimatedValue, ltvBps, interestBps, true);
 
         (uint256 val, , bool isValid, uint256 ltv, uint256 interest) = protocol.appraisals(ASSET_ID);
         

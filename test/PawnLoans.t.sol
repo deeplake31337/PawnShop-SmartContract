@@ -6,8 +6,11 @@ import "./BaseSetup.t.sol";
 contract PawnLoansTest is BaseSetup {
 
     function test_CreatePawnLoan() public {
+        vm.prank(admin);
+        protocol.setKYCStatus(alice, true);
+
         vm.prank(oracle);
-        protocol.updateAppraisal(ASSET_ID, 10_000 * 10**18, 6000, 500); 
+        protocol.updateAppraisal(ASSET_ID, 10_000 * 10**18, 6000, 500, true); 
 
         vm.prank(admin);
         protocol.updatePlatformFee(0);

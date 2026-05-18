@@ -1,16 +1,57 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "./utils/ReentrancyGuard.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IERC721.sol";
 import "./interfaces/IFractionToken.sol";
 
 /**
+ * @title Initializable
+ * @dev Helper to replace constructor for upgradeable contracts
+ */
+abstract contract Initializable {
+    bool private _initialized;
+    bool private _initializing;
+
+    modifier initializer() {
+        require(_initializing || !_initialized, "Initializable: already initialized");
+        bool isTopLevelCall = !_initializing;
+        if (isTopLevelCall) {
+            _initializing = true;
+            _initialized = true;
+        }
+        _;
+        if (isTopLevelCall) {
+            _initializing = false;
+        }
+    }
+}
+
+/**
+ * @title ReentrancyGuardUpgradeable
+ */
+abstract contract ReentrancyGuardUpgradeable is Initializable {
+    uint256 private constant _NOT_ENTERED = 1;
+    uint256 private constant _ENTERED = 2;
+    uint256 private _status;
+
+    function __ReentrancyGuard_init() internal initializer {
+        _status = _NOT_ENTERED;
+    }
+
+    modifier nonReentrant() {
+        require(_status != _ENTERED, "ReentrancyGuard: reentrant call");
+        _status = _ENTERED;
+        _;
+        _status = _NOT_ENTERED;
+    }
+}
+
+/**
  * @title PawnBase
  * @dev Contains all State variables, Structs, Modifiers, Events, and Errors of the system.
  */
-abstract contract PawnBase is ReentrancyGuard {
+abstract contract PawnBase is ReentrancyGuardUpgradeable {
     IERC20 public paymentToken;
     IERC721 public assetToken;
     IFractionToken public fractionToken;
@@ -18,8 +59,15 @@ abstract contract PawnBase is ReentrancyGuard {
     address public admin;
     address public oracle;
 
-    uint256 public platformFeePercentage = 1000; // Default fee 10% (1000/10000 bps)
+    mapping(address => bool) public kycedUsers;
+
+    uint256 public platformFeePercentage;
     uint256 public constant MAX_BPS = 10000;
+
+    // Admin-configurable parameters
+    uint256 public minLoanDuration;
+    uint256 public maxLoanDuration;
+    mapping(address => bool) public supportedStablecoins;
 
     struct Appraisal {
         uint256 value;
@@ -80,6 +128,15 @@ abstract contract PawnBase is ReentrancyGuard {
     mapping(uint256 => Layaway) public layaways;
     mapping(uint256 => FractionalAsset) public fractionalAssets;
     
+    // Dispute Management
+    struct Dispute {
+        address initiator;
+        string evidenceURI;
+        bool isResolved;
+        bool ruledInFavorOfUser;
+    }
+    mapping(uint256 => Dispute) public disputes;
+
     uint256 public nextFractionListingId;
     mapping(uint256 => FractionListing) public fractionListings;
 
@@ -96,6 +153,7 @@ abstract contract PawnBase is ReentrancyGuard {
     error LayawayExpired();
     error NotEnoughFractions();
     error InvalidMonthsDuration();
+    error KYCRequired();
 
     // Events
     event PenaltyApplied(uint256 indexed assetId, uint256 penaltyAmount);
@@ -114,6 +172,10 @@ abstract contract PawnBase is ReentrancyGuard {
     event LayawayForfeited(uint256 indexed assetId);
     event AssetFractionalized(uint256 indexed assetId, address owner, uint256 totalShares, uint256 pricePerShare);
     event FractionsBought(uint256 indexed assetId, address buyer, uint256 shares, uint256 totalCost);
+    event DisputeOpened(uint256 indexed assetId, address initiator, string evidenceURI);
+    event DisputeResolved(uint256 indexed assetId, bool ruledInFavorOfUser);
+    event NotificationTriggered(uint256 indexed assetId, address indexed user, string messageType);
+    event PhysicalCustodyHandoverPending(uint256 indexed assetId, address indexed target);
 
     // Modifiers
     modifier onlyAdmin() {
@@ -125,4 +187,14 @@ abstract contract PawnBase is ReentrancyGuard {
         if (msg.sender != oracle && msg.sender != admin) revert NotAuthorized();
         _;
     }
+
+    modifier onlyKYC(address user) {
+        if (!kycedUsers[user]) revert KYCRequired();
+        _;
+    }
+
+    /**
+     * @dev Gap for future state extensions to prevent storage collisions in upgradeable contracts.
+     */
+    uint256[50] private __gap;
 }

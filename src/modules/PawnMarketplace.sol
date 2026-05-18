@@ -60,6 +60,7 @@ abstract contract PawnMarketplace is PawnBase {
         // Deliver the NFT RWA
         assetToken.transferFrom(address(this), msg.sender, assetId);
         emit ItemBought(assetId, msg.sender, list.price);
+        emit PhysicalCustodyHandoverPending(assetId, msg.sender);
     }
 
     /**

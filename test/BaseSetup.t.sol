@@ -26,7 +26,8 @@ abstract contract BaseSetup is Test {
         fractionToken = new MockERC1155();
 
         vm.startPrank(admin);
-        protocol = new PawnProtocol(address(paymentToken), address(assetToken), address(fractionToken));
+        protocol = new PawnProtocol();
+        protocol.initialize(address(paymentToken), address(assetToken), address(fractionToken));
         
         protocol.setRoles(admin, oracle);
         vm.stopPrank();
@@ -35,6 +36,9 @@ abstract contract BaseSetup is Test {
 
         paymentToken.mint(alice, 100_000 * 10**18);
         paymentToken.mint(bob, 100_000 * 10**18);
+
+        vm.prank(admin);
+        protocol.setStablecoinStatus(address(paymentToken), true);
 
         assetToken.mint(alice, ASSET_ID);
     }

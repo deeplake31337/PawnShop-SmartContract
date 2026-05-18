@@ -10,12 +10,13 @@ abstract contract PawnAppraisal is PawnBase {
      * @param estimatedValue The new estimated valuation in stablecoin decimals
      * @param ltvBps Recommended maximum Loan-to-Value (e.g., 6000 bps = 60%)
      * @param interestBps Custom interest rate applied for this specific asset class (e.g. 500 = 5%)
+     * @param isValid Whether the asset is authenticated and appraised (set to false to reject)
      */
-    function updateAppraisal(uint256 assetId, uint256 estimatedValue, uint256 ltvBps, uint256 interestBps) external onlyOracle {
+    function updateAppraisal(uint256 assetId, uint256 estimatedValue, uint256 ltvBps, uint256 interestBps, bool isValid) external onlyOracle {
         appraisals[assetId] = Appraisal({
             value: estimatedValue,
             timestamp: block.timestamp,
-            isValid: true, // Marking asset as fully authenticated and appraised
+            isValid: isValid,
             recommendedLTV: ltvBps,
             interestRateBps: interestBps
         });
