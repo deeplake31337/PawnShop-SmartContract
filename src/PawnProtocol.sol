@@ -148,18 +148,4 @@ contract PawnProtocol is Initializable, PawnAppraisal, PawnLoans, PawnMarketplac
     function withdrawFees(address tokenAddress, address target, uint256 amount) external onlyAdmin {
         IERC20(tokenAddress).transfer(target, amount);
     }
-
-    /**
-     * @dev Allows admin to rescue physical NFTs if stuck, or transfer liquidated goods out 
-     * of the protocol if not selling through the on-chain marketplace.
-     */
-    function rescueAsset(address target, uint256 assetId) external onlyAdmin {
-        // Prevent rescuing items that are currently active in loans, consignments, or layaways
-        require(!pawns[assetId].isActive, "Asset locked in active pawn");
-        require(!listings[assetId].isActive, "Asset locked in active listing");
-        require(!layaways[assetId].isActive, "Asset locked in active layaway");
-        require(!fractionalAssets[assetId].isActive, "Asset locked in active fractions");
-
-        assetToken.transferFrom(address(this), target, assetId);
-    }
 }
